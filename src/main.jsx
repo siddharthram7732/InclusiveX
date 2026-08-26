@@ -1,81 +1,509 @@
-import React, {useMemo, useState} from "react";
-import {createRoot} from "react-dom/client";
-import {
- Accessibility, Activity, AlertTriangle, ArrowRight, BarChart3, Bell,
- Building2, CheckCircle2, ChevronRight, ClipboardCheck, Clock3,
- FileText, Hospital, LayoutDashboard, MapPin, Plus, Search, Settings,
- ShieldCheck, Siren, School, UserRound, X
-} from "lucide-react";
+import React, { useState } from "react";
+import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-const initialCases=[
- {id:"JAM-AT-00421",facility:"Jamshedpur Public School",type:"School",location:"Main entrance",category:"Mobility",issue:"Ramp is partially blocked by stored furniture.",severity:"High",status:"In Progress",owner:"School Administration",due:"2026-08-18",verified:true},
- {id:"JAM-AT-00420",facility:"City Care Hospital",type:"Hospital",location:"OPD Block A",category:"Wayfinding",issue:"Accessible route signage is missing at the main junction.",severity:"Medium",status:"Assigned",owner:"Facility Manager",due:"2026-08-20",verified:true},
- {id:"JAM-AT-00419",facility:"Jamshedpur Civic Centre",type:"Government Office",location:"Public counter",category:"Communication",issue:"No clearly identified accessible service counter.",severity:"Medium",status:"Overdue",owner:"Centre Administration",due:"2026-08-09",verified:true},
- {id:"JAM-AT-00418",facility:"City Care Hospital",type:"Hospital",location:"Accessible toilet",category:"Sanitation",issue:"Grab-bar maintenance required.",severity:"High",status:"Verified",owner:"Facility Manager",due:"2026-08-07",verified:true},
- {id:"JAM-AT-00417",facility:"Jamshedpur Public School",type:"School",location:"Library",category:"Digital Access",issue:"Public computer workstation lacks an accessible configuration.",severity:"Low",status:"Reported",owner:"School Administration",due:"2026-08-22",verified:false}
+// Comprehensive City Directory (Any institution can be reviewed)
+const initialInstitutions = [
+  {
+    id: "INST-001",
+    name: "St. Xavier School",
+    type: "School",
+    location: "Circuit House Area, Jamshedpur",
+    accessibilityScore: 72,
+    actionScore: 85,
+    reviews: [
+      { user: "Rohan K.", rating: 4, comment: "Ramp at main entrance is good, but 2nd floor elevator needs braille buttons." },
+      { user: "Priya S.", rating: 5, comment: "Quick response by maintenance team when wheelchair ramp was damaged!" }
+    ]
+  },
+  {
+    id: "INST-002",
+    name: "MGM Medical College & Hospital",
+    type: "Hospital",
+    location: "Sakchi, Jamshedpur",
+    accessibilityScore: 54,
+    actionScore: 42,
+    reviews: [
+      { user: "Amit M.", rating: 2, comment: "OPD ground floor is crowded and tactile paths for visually impaired are missing." }
+    ]
+  },
+  {
+    id: "INST-003",
+    name: "Tata Main Hospital (TMH)",
+    type: "Hospital",
+    location: "Bistupur, Jamshedpur",
+    accessibilityScore: 88,
+    actionScore: 92,
+    reviews: [
+      { user: "Sunita D.", rating: 5, comment: "Excellent wheelchair support staff and accessible restrooms." }
+    ]
+  },
+  {
+    id: "INST-004",
+    name: "Tatanagar Junction Railway Station",
+    type: "Transit Hub",
+    location: "Parsudih, Jamshedpur",
+    accessibilityScore: 68,
+    actionScore: 75,
+    reviews: [
+      { user: "Vikram R.", rating: 3, comment: "Platform 1 ramp is clear, but footover bridge lifts are frequently under maintenance." }
+    ]
+  },
+  {
+    id: "INST-005",
+    name: "Jamshedpur Women's University",
+    type: "College",
+    location: "Bistupur, Jamshedpur",
+    accessibilityScore: 65,
+    actionScore: 70,
+    reviews: []
+  }
 ];
-const facilities=[
- {name:"Jamshedpur Public School",type:"School",access:72,action:84,open:2},
- {name:"City Care Hospital",type:"Hospital",access:68,action:79,open:1},
- {name:"Jamshedpur Civic Centre",type:"Government Office",access:61,action:58,open:1},
- {name:"Transit Hub — Demo",type:"Transport",access:75,action:88,open:0}
+
+const initialCases = [
+  { id: "JAM-AT-101", instId: "INST-001", title: "Main Ramp Handrail Broken", status: "In Progress", step: 4, owner: "School Estate Team", deadline: "2026-09-02" },
+  { id: "JAM-AT-102", instId: "INST-002", title: "Tactile Floor Tiles Missing in Lobby", status: "Overdue", step: 3, owner: "Civil Facility Mgr", deadline: "2026-08-20" },
+  { id: "JAM-AT-103", instId: "INST-003", title: "Accessible Washroom Grab-bar Fixed", status: "Verified", step: 6, owner: "TMH Public Works", deadline: "2026-08-25" }
 ];
-const categories=["Mobility","Wayfinding","Sanitation","Communication","Digital Access","Emergency Access"];
-const severities=["Low","Medium","High","Critical"];
 
-function App(){
- const [page,setPage]=useState("dashboard"),[cases,setCases]=useState(initialCases);
- const [selected,setSelected]=useState(null),[toast,setToast]=useState(""),[search,setSearch]=useState("");
- const metrics=useMemo(()=>({total:cases.length,resolved:cases.filter(c=>c.status==="Verified").length,overdue:cases.filter(c=>c.status==="Overdue").length}),[cases]);
- const notify=m=>{setToast(m);setTimeout(()=>setToast(""),2200)};
- const addCase=p=>{const c={...p,id:`JAM-AT-${String(422+cases.length).padStart(5,"0")}`,status:"Reported",verified:false};setCases([c,...cases]);setPage("cases");notify(`Case ${c.id} created.`)};
- const updateCase=(id,patch)=>{setCases(x=>x.map(c=>c.id===id?{...c,...patch}:c));setSelected(x=>x?{...x,...patch}:x);notify("Case updated.")};
- return <div className="app"><Sidebar page={page} setPage={setPage}/><main className="main"><Topbar search={search} setSearch={setSearch} onReport={()=>setPage("report")}/>
- {page==="dashboard"&&<Dashboard cases={cases} metrics={metrics} setSelected={setSelected} setPage={setPage}/>}
- {page==="cases"&&<Cases cases={cases} search={search} setSelected={setSelected}/>}
- {page==="report"&&<ReportForm onSubmit={addCase}/>}
- {page==="facilities"&&<Facilities facilities={facilities}/>}
- {page==="analytics"&&<Analytics cases={cases} metrics={metrics}/>}
- {page==="auditor"&&<Auditor cases={cases} setSelected={setSelected}/>}
- {page==="settings"&&<SettingsPage/>}</main>
- {selected&&<CaseDrawer caseData={selected} close={()=>setSelected(null)} updateCase={updateCase}/>}
- {toast&&<div className="toast"><CheckCircle2 size={17}/>{toast}</div>}</div>
+function App() {
+  const [viewMode, setViewMode] = useState("citizen"); // 'citizen' or 'admin'
+  const [activeTab, setActiveTab] = useState("directory"); // 'directory' or 'cases'
+  const [institutions, setInstitutions] = useState(initialInstitutions);
+  const [cases, setCases] = useState(initialCases);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Selected Institution for Detailed Review Modal
+  const [selectedInst, setSelectedInst] = useState(null);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "", user: "" });
+  
+  // Floating App Feedback State
+  const [showAppFeedback, setShowAppFeedback] = useState(false);
+  const [appFeedbackText, setAppFeedbackText] = useState("");
+
+  // New Institution Creation State
+  const [showAddInst, setShowAddInst] = useState(false);
+  const [newInstData, setNewInstData] = useState({ name: "", type: "School", location: "" });
+
+  // Filtered Institutions based on search
+  const filteredInstitutions = institutions.filter(inst => 
+    inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    inst.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    inst.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Handle Review Submission for ANY Institution
+  const handleAddReview = (e) => {
+    e.preventDefault();
+    if (!newReview.comment || !selectedInst) return;
+
+    const updatedInsts = institutions.map((inst) => {
+      if (inst.id === selectedInst.id) {
+        return {
+          ...inst,
+          reviews: [
+            { user: newReview.user || "Anonymous Resident", rating: Number(newReview.rating), comment: newReview.comment },
+            ...inst.reviews
+          ]
+        };
+      }
+      return inst;
+    });
+
+    setInstitutions(updatedInsts);
+    // Update currently open modal view
+    const updatedCurrent = updatedInsts.find(i => i.id === selectedInst.id);
+    setSelectedInst(updatedCurrent);
+
+    setNewReview({ rating: 5, comment: "", user: "" });
+    alert(`Thank you! Your review for ${selectedInst.name} has been published.`);
+  };
+
+  // Handle Adding a New Institution to Directory
+  const handleAddInstitution = (e) => {
+    e.preventDefault();
+    if (!newInstData.name || !newInstData.location) return;
+
+    const created = {
+      id: `INST-00${institutions.length + 1}`,
+      name: newInstData.name,
+      type: newInstData.type,
+      location: newInstData.location,
+      accessibilityScore: 70, // Baseline rating
+      actionScore: 100,
+      reviews: []
+    };
+
+    setInstitutions([created, ...institutions]);
+    setNewInstData({ name: "", type: "School", location: "" });
+    setShowAddInst(false);
+    alert(`${created.name} added to Jamshedpur Directory!`);
+  };
+
+  return (
+    <div style={{ padding: "20px", fontFamily: "system-ui, sans-serif", maxWidth: "1150px", margin: "0 auto", color: "#f8fafc" }}>
+      
+      {/* APP HEADER */}
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #334155", paddingBottom: "16px", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <h1 style={{ margin: 0, color: "#f59e0b", fontSize: "28px", fontWeight: "800" }}>InclusiveX</h1>
+          <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>Audit → Action → Monitor → Verify</p>
+        </div>
+
+        {/* Dual View Mode Selector */}
+        <div style={{ display: "flex", background: "#1e293b", padding: "4px", borderRadius: "12px", border: "1px solid #334155" }}>
+          <button
+            onClick={() => setViewMode("citizen")}
+            style={{
+              padding: "10px 18px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold",
+              background: viewMode === "citizen" ? "#f59e0b" : "transparent",
+              color: viewMode === "citizen" ? "#0f172a" : "#cbd5e1"
+            }}
+          >
+            👤 Public / Citizen View
+          </button>
+          <button
+            onClick={() => setViewMode("admin")}
+            style={{
+              padding: "10px 18px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold",
+              background: viewMode === "admin" ? "#f59e0b" : "transparent",
+              color: viewMode === "admin" ? "#0f172a" : "#cbd5e1"
+            }}
+          >
+            🛠️ Facility Manager Dashboard
+          </button>
+        </div>
+      </header>
+
+      {/* CITIZEN VIEW */}
+      {viewMode === "citizen" && (
+        <div>
+          {/* NAVIGATION TAB BAR */}
+          <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
+            <button
+              onClick={() => setActiveTab("directory")}
+              style={{
+                padding: "12px 20px", borderRadius: "10px", fontWeight: "bold", border: "none", cursor: "pointer",
+                background: activeTab === "directory" ? "#38bdf8" : "#1e293b",
+                color: activeTab === "directory" ? "#0f172a" : "#f8fafc"
+              }}
+            >
+              🏢 City Institution Directory ({institutions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("cases")}
+              style={{
+                padding: "12px 20px", borderRadius: "10px", fontWeight: "bold", border: "none", cursor: "pointer",
+                background: activeTab === "cases" ? "#38bdf8" : "#1e293b",
+                color: activeTab === "cases" ? "#0f172a" : "#f8fafc"
+              }}
+            >
+              📋 Reported Barrier Cases ({cases.length})
+            </button>
+          </div>
+
+          {/* TAB 1: INSTITUTION DIRECTORY (REVIEW ANY INSTITUTION) */}
+          {activeTab === "directory" && (
+            <div>
+              {/* Search Bar & Add Button */}
+              <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search ANY school, hospital, public building to view scores or leave a review..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ flex: 1, minWidth: "280px", padding: "14px", borderRadius: "10px", border: "1px solid #475569", background: "#0f172a", color: "#fff", fontSize: "15px" }}
+                />
+                <button
+                  onClick={() => setShowAddInst(true)}
+                  style={{ padding: "14px 20px", background: "#f59e0b", color: "#000", fontWeight: "bold", border: "none", borderRadius: "10px", cursor: "pointer" }}
+                >
+                  ➕ Add Building to Directory
+                </button>
+              </div>
+
+              {/* Institution Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
+                {filteredInstitutions.map((inst) => (
+                  <div key={inst.id} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "16px", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: "bold", color: "#38bdf8", background: "#0c4a6e", padding: "4px 8px", borderRadius: "6px" }}>{inst.type}</span>
+                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>{inst.reviews.length} Citizen Reviews</span>
+                      </div>
+                      <h3 style={{ margin: "4px 0 6px 0", fontSize: "18px", color: "#fff" }}>{inst.name}</h3>
+                      <p style={{ margin: "0 0 16px 0", fontSize: "13px", color: "#94a3b8" }}>📍 {inst.location}</p>
+
+                      {/* Dual Score Metric Display */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", background: "#0f172a", padding: "12px", borderRadius: "10px", marginBottom: "16px" }}>
+                        <div>
+                          <span style={{ fontSize: "10px", textTransform: "uppercase", color: "#94a3b8", fontWeight: "bold", block: true }}>Accessibility Score</span>
+                          <span style={{ fontSize: "20px", fontWeight: "bold", color: inst.accessibilityScore > 75 ? "#4ade80" : "#facc15" }}>
+                            {inst.accessibilityScore}/100
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: "10px", textTransform: "uppercase", color: "#94a3b8", fontWeight: "bold", block: true }}>Action Score</span>
+                          <span style={{ fontSize: "20px", fontWeight: "bold", color: inst.actionScore > 75 ? "#38bdf8" : "#f87171" }}>
+                            {inst.actionScore}/100
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedInst(inst)}
+                      style={{ width: "100%", padding: "12px", background: "#0f172a", border: "1px solid #38bdf8", color: "#38bdf8", fontWeight: "bold", borderRadius: "8px", cursor: "pointer", transition: "all 0.2s" }}
+                    >
+                      ⭐ Read & Cast Reviews ({inst.reviews.length})
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: ACTIVE REPORTED CASES */}
+          {activeTab === "cases" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {cases.map((c) => {
+                const inst = institutions.find(i => i.id === c.instId);
+                return (
+                  <div key={c.id} style={{ background: "#1e293b", border: "1px solid #334155", padding: "20px", borderRadius: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
+                      <div>
+                        <span style={{ fontSize: "12px", color: "#f59e0b", fontWeight: "bold" }}>{c.id} • {inst ? inst.name : "Public Facility"}</span>
+                        <h3 style={{ margin: "4px 0", color: "#fff" }}>{c.title}</h3>
+                      </div>
+                      <span style={{ background: c.status === "Verified" ? "#16a34a" : c.status === "Overdue" ? "#dc2626" : "#2563eb", padding: "6px 12px", borderRadius: "20px", fontWeight: "bold", fontSize: "12px" }}>
+                        {c.status}
+                      </span>
+                    </div>
+
+                    <div style={{ background: "#0f172a", padding: "12px", borderRadius: "10px", margin: "14px 0", fontSize: "13px" }}>
+                      <span style={{ color: "#94a3b8" }}>Workflow Progress: Step {c.step} of 6</span>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "4px", marginTop: "6px" }}>
+                        {[1,2,3,4,5,6].map(s => (
+                          <div key={s} style={{ height: "6px", borderRadius: "3px", background: s <= c.step ? "#f59e0b" : "#334155" }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* BACKEND ADMIN DASHBOARD VIEW */}
+      {viewMode === "admin" && (
+        <div style={{ background: "#1e293b", border: "1px solid #334155", padding: "24px", borderRadius: "16px" }}>
+          <h2 style={{ color: "#f59e0b", marginTop: 0 }}>Facility Accountability Matrix</h2>
+          <p style={{ color: "#94a3b8", fontSize: "14px" }}>Track overdue actions, assign owners, and issue verification checks[cite: 1].</p>
+          
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "16px", textAlign: "left", fontSize: "14px" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #334155", color: "#94a3b8" }}>
+                <th style={{ padding: "12px" }}>Case ID</th>
+                <th style={{ padding: "12px" }}>Issue</th>
+                <th style={{ padding: "12px" }}>Responsible Owner</th>
+                <th style={{ padding: "12px" }}>Deadline</th>
+                <th style={{ padding: "12px" }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cases.map(c => (
+                <tr key={c.id} style={{ borderBottom: "1px solid #334155" }}>
+                  <td style={{ padding: "12px", fontWeight: "bold", color: "#f59e0b" }}>{c.id}</td>
+                  <td style={{ padding: "12px" }}>{c.title}</td>
+                  <td style={{ padding: "12px" }}>{c.owner}</td>
+                  <td style={{ padding: "12px" }}>{c.deadline}</td>
+                  <td style={{ padding: "12px" }}>
+                    <span style={{ color: c.status === "Overdue" ? "#f87171" : "#4ade80", fontWeight: "bold" }}>{c.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* INSTITUTION REVIEW MODAL (FOR ANY INSTITUTION) */}
+      {selectedInst && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.85)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+          <div style={{ background: "#1e293b", border: "1px solid #475569", borderRadius: "20px", padding: "24px", maxWidth: "550px", width: "100%", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+            <button
+              onClick={() => setSelectedInst(null)}
+              style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", color: "#94a3b8", fontSize: "20px", cursor: "pointer" }}
+            >
+              ✕
+            </button>
+
+            <h2 style={{ color: "#f59e0b", margin: "0 0 4px 0" }}>{selectedInst.name}</h2>
+            <p style={{ color: "#94a3b8", fontSize: "13px", margin: "0 0 16px 0" }}>📍 {selectedInst.location} • {selectedInst.type}</p>
+
+            {/* Score Summary Header */}
+            <div style={{ display: "flex", gap: "12px", background: "#0f172a", padding: "12px", borderRadius: "12px", marginBottom: "20px" }}>
+              <div style={{ flex: 1, textAlign: "center" }}>
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>ACCESSIBILITY SCORE</div>
+                <div style={{ fontSize: "22px", fontWeight: "bold", color: "#4ade80" }}>{selectedInst.accessibilityScore}/100</div>
+              </div>
+              <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #334155" }}>
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>ACTION SCORE</div>
+                <div style={{ fontSize: "22px", fontWeight: "bold", color: "#38bdf8" }}>{selectedInst.actionScore}/100</div>
+              </div>
+            </div>
+
+            {/* Review Input Form */}
+            <form onSubmit={handleAddReview} style={{ background: "#0f172a", padding: "16px", borderRadius: "12px", marginBottom: "20px" }}>
+              <h4 style={{ margin: "0 0 10px 0", color: "#fff" }}>Cast Citizen Review for this Institution</h4>
+              
+              <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                <input
+                  type="text"
+                  placeholder="Your Name (Optional)"
+                  value={newReview.user}
+                  onChange={(e) => setNewReview({ ...newReview, user: e.target.value })}
+                  style={{ flex: 1, padding: "10px", borderRadius: "8px", border: "1px solid #334155", background: "#1e293b", color: "#fff" }}
+                />
+                <select
+                  value={newReview.rating}
+                  onChange={(e) => setNewReview({ ...newReview, rating: e.target.value })}
+                  style={{ padding: "10px", borderRadius: "8px", border: "1px solid #334155", background: "#1e293b", color: "#fff" }}
+                >
+                  <option value={5}>⭐⭐⭐⭐⭐ (5/5)</option>
+                  <option value={4}>⭐⭐⭐⭐ (4/5)</option>
+                  <option value={3}>⭐⭐⭐ (3/5)</option>
+                  <option value={2}>⭐⭐ (2/5)</option>
+                  <option value={1}>⭐ (1/5)</option>
+                </select>
+              </div>
+
+              <textarea
+                placeholder="Share your experience regarding ramps, elevators, washrooms, or staff assistance..."
+                value={newReview.comment}
+                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                rows={3}
+                style={{ width: "95%", padding: "10px", borderRadius: "8px", border: "1px solid #334155", background: "#1e293b", color: "#fff", marginBottom: "10px" }}
+                required
+              />
+
+              <button
+                type="submit"
+                style={{ width: "100%", padding: "10px", background: "#f59e0b", color: "#000", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}
+              >
+                Submit Institution Review
+              </button>
+            </form>
+
+            {/* Existing Citizen Reviews List */}
+            <h4 style={{ color: "#fff", marginBottom: "12px" }}>Public Feedback ({selectedInst.reviews.length})</h4>
+            {selectedInst.reviews.length === 0 ? (
+              <p style={{ color: "#94a3b8", fontSize: "13px" }}>No reviews cast yet. Be the first citizen to review this institution!</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {selectedInst.reviews.map((rev, idx) => (
+                  <div key={idx} style={{ background: "#0f172a", padding: "12px", borderRadius: "10px", border: "1px solid #334155" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <strong style={{ fontSize: "14px", color: "#38bdf8" }}>{rev.user}</strong>
+                      <span style={{ fontSize: "12px" }}>{"⭐".repeat(rev.rating)}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "13px", color: "#cbd5e1" }}>{rev.comment}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD NEW BUILDING TO DIRECTORY */}
+      {showAddInst && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+          <div style={{ background: "#1e293b", padding: "24px", borderRadius: "20px", maxWidth: "450px", width: "100%", position: "relative" }}>
+            <button onClick={() => setShowAddInst(false)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", color: "#fff", fontSize: "18px", cursor: "pointer" }}>✕</button>
+            <h3 style={{ color: "#f59e0b", marginTop: 0 }}>Add New Building to City Directory</h3>
+            
+            <form onSubmit={handleAddInstitution} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <input
+                type="text"
+                placeholder="Institution / Building Name"
+                value={newInstData.name}
+                onChange={(e) => setNewInstData({ ...newInstData, name: e.target.value })}
+                style={{ padding: "12px", borderRadius: "8px", border: "1px solid #475569", background: "#0f172a", color: "#fff" }}
+                required
+              />
+              <select
+                value={newInstData.type}
+                onChange={(e) => setNewInstData({ ...newInstData, type: e.target.value })}
+                style={{ padding: "12px", borderRadius: "8px", border: "1px solid #475569", background: "#0f172a", color: "#fff" }}
+              >
+                <option value="School">School / Educational</option>
+                <option value="Hospital">Hospital / Clinic</option>
+                <option value="Transit Hub">Transit Hub / Railway / Bus</option>
+                <option value="Govt Office">Government Office</option>
+                <option value="Public Park">Public Facility / Park</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Area / Location (e.g., Bistupur, Jamshedpur)"
+                value={newInstData.location}
+                onChange={(e) => setNewInstData({ ...newInstData, location: e.target.value })}
+                style={{ padding: "12px", borderRadius: "8px", border: "1px solid #475569", background: "#0f172a", color: "#fff" }}
+                required
+              />
+              <button type="submit" style={{ padding: "12px", background: "#f59e0b", color: "#000", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+                Add Building
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING WEBSITE FEEDBACK BUTTON */}
+      <button
+        onClick={() => setShowAppFeedback(true)}
+        style={{
+          position: "fixed", bottom: "24px", right: "24px", background: "#f59e0b", color: "#000",
+          padding: "12px 20px", borderRadius: "30px", fontWeight: "bold", border: "none", cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.5)", zIndex: 100
+        }}
+      >
+        💡 App Ideas & Feedback
+      </button>
+
+      {/* APP FEEDBACK MODAL */}
+      {showAppFeedback && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+          <div style={{ background: "#1e293b", padding: "24px", borderRadius: "16px", maxWidth: "400px", width: "100%", position: "relative" }}>
+            <button onClick={() => setShowAppFeedback(false)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", color: "#fff", cursor: "pointer" }}>✕</button>
+            <h3 style={{ color: "#f59e0b", marginTop: 0 }}>Website Feedback</h3>
+            <textarea
+              placeholder="Tell us what you like or suggest new features..."
+              value={appFeedbackText}
+              onChange={(e) => setAppFeedbackText(e.target.value)}
+              rows={4}
+              style={{ width: "93%", padding: "10px", borderRadius: "8px", background: "#0f172a", border: "1px solid #475569", color: "#fff", marginBottom: "12px" }}
+            />
+            <button
+              onClick={() => { alert("Thank you for your feedback!"); setShowAppFeedback(false); setAppFeedbackText(""); }}
+              style={{ width: "100%", padding: "12px", background: "#f59e0b", color: "#000", fontWeight: "bold", border: "none", borderRadius: "8px", cursor: "pointer" }}
+            >
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }
 
-function Sidebar({page,setPage}){
- const items=[["dashboard","Dashboard",LayoutDashboard],["cases","Cases",ClipboardCheck],["report","Report Issue",Plus],["facilities","Facilities",Building2],["analytics","Analytics",BarChart3],["auditor","Audit Queue",ShieldCheck]];
- return <aside className="sidebar"><div className="brand"><div className="brandmark"><Accessibility size={24}/></div><div><b>Audit to Action</b><span>JAMSHEDPUR PILOT</span></div></div><div className="nav-label">WORKSPACE</div><nav>{items.map(([k,l,I])=><button key={k} className={page===k?"nav active":"nav"} onClick={()=>setPage(k)}><I size={18}/><span>{l}</span></button>)}</nav><div className="sidebar-bottom"><button className={page==="settings"?"nav active":"nav"} onClick={()=>setPage("settings")}><Settings size={18}/><span>Settings</span></button><div className="pilot-card"><i></i><b>Prototype mode</b><span>Demo data · not official certification</span></div></div></aside>
+const container = document.getElementById("root");
+if (container) {
+  const root = createRoot(container);
+  root.render(<App />);
 }
-function Topbar({search,setSearch,onReport}){return <header className="topbar"><div className="crumb"><span>Jamshedpur</span><ChevronRight size={15}/><b>Accessibility Accountability</b></div><div className="top-actions"><div className="search"><Search size={17}/><input placeholder="Search cases..." value={search} onChange={e=>setSearch(e.target.value)}/></div><button className="icon-btn"><Bell size={18}/></button><button className="user"><UserRound size={18}/>Project Admin</button><button className="primary small" onClick={onReport}><Plus size={16}/>Report issue</button></div></header>}
-function Head({eyebrow,title,desc,action}){return <div className="page-head"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{desc}</p></div>{action}</div>}
-function Stat({icon:I,label,value,sub,tone=""}){return <div className="stat"><div className={`stat-icon ${tone}`}><I size={19}/></div><div><span>{label}</span><strong>{value}</strong><small>{sub}</small></div></div>}
-function Dashboard({cases,metrics,setSelected,setPage}){
- const bars=[["Identified",120,"blue"],["Assigned",96,"cyan"],["In progress",42,"orange"],["Resolved",78,"green"],["Overdue",13,"red"]];
- return <div className="content"><Head eyebrow="OVERVIEW / 01" title="Accessibility command centre" desc="Track barriers from first report to verified resolution." action={<button className="secondary" onClick={()=>setPage("report")}><Plus size={16}/>New case</button>}/>
- <div className="stat-grid"><Stat icon={Building2} label="Facilities monitored" value="10" sub="+4 this pilot"/><Stat icon={AlertTriangle} label="Open barriers" value={metrics.total-metrics.resolved} sub={`${metrics.overdue} overdue`} tone="warn"/><Stat icon={CheckCircle2} label="Verified resolved" value={metrics.resolved+78} sub="Illustrative pilot total" tone="good"/><Stat icon={Activity} label="Avg. action score" value="81" sub="+9 vs baseline" tone="blue"/></div>
- <div className="two-col"><section className="panel"><div className="panel-head"><div><h3>Action pipeline</h3><span>Illustrative pilot dashboard</span></div><span className="pill">Demo data</span></div><div className="bar-chart">{bars.map(([l,v,c])=><div className="bar-col" key={l}><b>{v}</b><div className={`bar ${c}`} style={{height:`${Math.max(10,v/120*185)}px`}}></div><span>{l}</span></div>)}</div></section>
- <section className="panel"><div className="panel-head"><div><h3>Score snapshot</h3><span>Condition + response</span></div></div><ScoreRow label="Accessibility Score" value={68} tone="blue"/><ScoreRow label="Action Score" value={81} tone="green"/><div className="score-note"><ShieldCheck size={18}/><span>Two scores separate <b>how accessible</b> a place is from <b>how well it responds</b>.</span></div></section></div>
- <section className="panel"><div className="panel-head"><div><h3>Recent cases</h3><span>Latest activity</span></div><button className="link-btn" onClick={()=>setPage("cases")}>View all <ArrowRight size={15}/></button></div><CaseTable cases={cases.slice(0,4)} setSelected={setSelected}/></section></div>
-}
-function ScoreRow({label,value,tone}){return <div className="score-row"><div><span>{label}</span><b>{value}<em>/100</em></b></div><div className="progress"><i className={tone} style={{width:`${value}%`}}/></div></div>}
-function Cases({cases,search,setSelected}){const f=cases.filter(c=>[c.id,c.facility,c.issue,c.category,c.status].join(" ").toLowerCase().includes(search.toLowerCase()));return <div className="content"><Head eyebrow="CASE MANAGEMENT / 02" title="Accessibility cases" desc="Every verified finding becomes a trackable action."/><section className="panel"><div className="filters"><div className="filter active">All <b>{f.length}</b></div><div className="filter">Reported</div><div className="filter">Assigned</div><div className="filter">In progress</div><div className="filter">Overdue</div><div className="filter">Verified</div></div><CaseTable cases={f} setSelected={setSelected}/></section></div>}
-function CaseTable({cases,setSelected}){return <div className="table-wrap"><table><thead><tr><th>CASE</th><th>FACILITY</th><th>FINDING</th><th>PRIORITY</th><th>OWNER</th><th>DUE</th><th>STATUS</th></tr></thead><tbody>{cases.map(c=><tr key={c.id} onClick={()=>setSelected(c)}><td><b className="case-id">{c.id}</b><small>{c.category}</small></td><td><b>{c.facility}</b><small>{c.type}</small></td><td className="finding">{c.issue}<small>{c.location}</small></td><td><Priority value={c.severity}/></td><td>{c.owner}</td><td>{fmt(c.due)}</td><td><Status value={c.status}/></td></tr>)}</tbody></table></div>}
-function Priority({value}){return <span className={`priority ${value.toLowerCase()}`}>{value}</span>}
-function Status({value}){return <span className={`status ${value.toLowerCase().replaceAll(" ","-")}`}>{value}</span>}
-function fmt(s){return new Date(s+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}
-
-function ReportForm({onSubmit}){
- const [f,setF]=useState({facility:"Jamshedpur Public School",type:"School",location:"",category:"Mobility",issue:"",severity:"Medium",owner:"School Administration",due:"2026-08-22"});
- const set=(k,v)=>setF({...f,[k]:v}); const submit=e=>{e.preventDefault();if(!f.location||!f.issue)return;onSubmit(f)};
- return <div className="content"><Head eyebrow="REPORT / 03" title="Report an accessibility barrier" desc="Create a structured case. This prototype does not issue statutory certification."/><form className="form-grid" onSubmit={submit}><section className="panel form-main"><div className="form-title"><div className="form-icon"><MapPin size={20}/></div><div><h3>Issue details</h3><span>Capture enough context for verification.</span></div></div><div className="field-row"><Field label="Facility"><select value={f.facility} onChange={e=>set("facility",e.target.value)}><option>Jamshedpur Public School</option><option>City Care Hospital</option><option>Jamshedpur Civic Centre</option><option>Transit Hub — Demo</option></select></Field><Field label="Facility type"><select value={f.type} onChange={e=>set("type",e.target.value)}><option>School</option><option>Hospital</option><option>Government Office</option><option>Transport</option></select></Field></div><Field label="Exact location" required><input placeholder="e.g. Main entrance, OPD Block A" value={f.location} onChange={e=>set("location",e.target.value)}/></Field><Field label="Barrier category"><select value={f.category} onChange={e=>set("category",e.target.value)}>{categories.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="What is the problem?" required><textarea rows="5" placeholder="Describe what you observed..." value={f.issue} onChange={e=>set("issue",e.target.value)}/></Field><div className="upload"><FileText size={20}/><div><b>Evidence attachment</b><span>Prototype UI placeholder</span></div><button type="button" className="secondary">Choose file</button></div></section><aside className="panel form-side"><h3>Initial triage</h3><Field label="Severity"><select value={f.severity} onChange={e=>set("severity",e.target.value)}>{severities.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Responsible owner"><input value={f.owner} onChange={e=>set("owner",e.target.value)}/></Field><Field label="Proposed target date"><input type="date" value={f.due} onChange={e=>set("due",e.target.value)}/></Field><div className="notice"><ShieldCheck size={18}/><p><b>Boundary:</b> final technical classification should be confirmed through the appropriate audit/verification process.</p></div><button className="primary full" type="submit"><ClipboardCheck size={17}/>Create case</button></aside></form></div>}
-function Field({label,required,children}){return <label className="field"><span>{label}{required&&<i> *</i>}</span>{children}</label>}
-
-function Facilities({facilities}){return <div className="content"><Head eyebrow="FACILITIES / 04" title="Facility portfolio" desc="Compare accessibility condition with action performance."/><div className="facility-grid">{facilities.map(f=><div className="facility-card" key={f.name}><div className="facility-top"><div className="facility-logo">{f.type==="Hospital"?<Hospital size={21}/>:f.type==="School"?<School size={21}/>:<Building2 size={21}/>}</div><span className="pill">{f.type}</span></div><h3>{f.name}</h3><span className="muted">{f.open} open actions</span><ScoreRow label="Accessibility" value={f.access} tone="blue"/><ScoreRow label="Action" value={f.action} tone="green"/></div>)}</div></div>}
-function Analytics({cases,metrics}){const cats=categories.map(cat=>({cat,n:cases.filter(c=>c.category===cat).length}));const max=Math.max(1,...cats.map(x=>x.n));return <div className="content"><Head eyebrow="ANALYTICS / 05" title="Impact analytics" desc="Prototype analytics for the YUVA pilot narrative."/><div className="analytics-grid"><section className="panel"><div className="panel-head"><div><h3>Cases by category</h3><span>Current demo dataset</span></div></div><div className="hbars">{cats.map(x=><div className="hbar" key={x.cat}><span>{x.cat}</span><div><i style={{width:`${x.n/max*100}%`}}/></div><b>{x.n}</b></div>)}</div></section><section className="panel"><div className="panel-head"><div><h3>Outcome</h3><span>Current cases</span></div></div><div className="donut" style={{"--p":`${metrics.resolved/cases.length*100}%`}}><div><b>{Math.round(metrics.resolved/cases.length*100)}%</b><span>resolved</span></div></div><div className="legend"><span><i className="dot green"/>Verified</span><span><i className="dot orange"/>Open</span><span><i className="dot red"/>Overdue</span></div></section></div><div className="insight-row"><div><Siren size={19}/><b>Accountability insight</b><span>Overdue cases should trigger escalation — not disappear from the dashboard.</span></div><div><Activity size={19}/><b>Impact insight</b><span>Re-score after verified closure to show measurable improvement.</span></div></div></div>}
-function Auditor({cases,setSelected}){const q=cases.filter(c=>c.status==="Reported"||c.status==="Assigned");return <div className="content"><Head eyebrow="AUDIT QUEUE / 06" title="Verification & audit queue" desc="Review reports, record findings, and move verified cases into action."/><div className="audit-banner"><ShieldCheck size={22}/><div><b>Role boundary</b><span>The platform manages workflow; it does not itself grant statutory accessibility certification.</span></div></div><section className="panel"><div className="panel-head"><div><h3>Awaiting verification / action assignment</h3><span>{q.length} cases</span></div></div><CaseTable cases={q} setSelected={setSelected}/></section></div>}
-function SettingsPage(){return <div className="content"><Head eyebrow="SETTINGS" title="Prototype settings" desc="Demo-only configuration."/><div className="two-col"><section className="panel"><h3>Scoring model</h3><p className="muted">Accessibility Score is a demonstration index. In a real deployment, weights and thresholds must be validated against applicable standards and professional audit methodology.</p><div className="mini-list"><span>Physical access <b>30%</b></span><span>Wayfinding <b>15%</b></span><span>Accessible sanitation <b>20%</b></span><span>Communication <b>15%</b></span><span>Emergency access <b>20%</b></span></div></section><section className="panel"><h3>Prototype boundaries</h3><p className="muted">No legal penalty engine, official certification, or real government integration is included. The prototype demonstrates the accountability workflow.</p></section></div></div>}
-function CaseDrawer({caseData,close,updateCase}){return <div className="drawer-overlay" onClick={close}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">CASE DETAIL</span><h2>{caseData.id}</h2></div><button className="icon-btn" onClick={close}><X size={19}/></button></div><div className="drawer-status"><Status value={caseData.status}/><Priority value={caseData.severity}/><span>{caseData.category}</span></div><div className="drawer-block"><label>FINDING</label><p className="big">{caseData.issue}</p><span className="muted"><MapPin size={14}/> {caseData.location}</span></div><div className="drawer-block"><label>ACTION OWNER</label><p>{caseData.owner}</p><div className="owner-line"><Clock3 size={15}/> Target: {fmt(caseData.due)}</div></div><div className="drawer-block"><label>ACCOUNTABILITY TIMELINE</label><Timeline label="Report received" done/><Timeline label="Finding verified" done={caseData.verified}/><Timeline label="Action assigned" done={["Assigned","In Progress","Overdue","Verified"].includes(caseData.status)}/><Timeline label="Corrective action" done={caseData.status==="Verified"}/><Timeline label="Closure verified" done={caseData.status==="Verified"} last/></div><div className="drawer-actions"><button className="secondary" onClick={()=>updateCase(caseData.id,{status:"In Progress"})}>Mark in progress</button><button className="primary" onClick={()=>updateCase(caseData.id,{status:"Verified",verified:true})}>Verify closure</button></div></aside></div>}
-function Timeline({label,done,last}){return <div className="timeline"><div className={`t-dot ${done?"done":""}`}>{done?<CheckCircle2 size={13}/>:<Clock3 size={12}/>}</div><span>{label}</span>{!last&&<i/>}</div>}
-
-createRoot(document.getElementById("root")).render(<App/>);
