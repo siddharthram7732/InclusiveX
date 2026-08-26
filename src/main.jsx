@@ -1,362 +1,81 @@
-import React, { useState } from 'react'
-import ReactDOM from 'react-dom/client'
-import './styles.css'
+import React, {useMemo, useState} from "react";
+import {createRoot} from "react-dom/client";
+import {
+ Accessibility, Activity, AlertTriangle, ArrowRight, BarChart3, Bell,
+ Building2, CheckCircle2, ChevronRight, ClipboardCheck, Clock3,
+ FileText, Hospital, LayoutDashboard, MapPin, Plus, Search, Settings,
+ ShieldCheck, Siren, School, UserRound, X
+} from "lucide-react";
+import "./styles.css";
 
-function InclusiveXApp() {
-  // Navigation State
-  const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Action Score & Case Data State
-  const [actionScore, setActionScore] = useState(78); // Out of 100
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [selectedCaseForFeedback, setSelectedCaseForFeedback] = useState(null);
+const initialCases=[
+ {id:"JAM-AT-00421",facility:"Jamshedpur Public School",type:"School",location:"Main entrance",category:"Mobility",issue:"Ramp is partially blocked by stored furniture.",severity:"High",status:"In Progress",owner:"School Administration",due:"2026-08-18",verified:true},
+ {id:"JAM-AT-00420",facility:"City Care Hospital",type:"Hospital",location:"OPD Block A",category:"Wayfinding",issue:"Accessible route signage is missing at the main junction.",severity:"Medium",status:"Assigned",owner:"Facility Manager",due:"2026-08-20",verified:true},
+ {id:"JAM-AT-00419",facility:"Jamshedpur Civic Centre",type:"Government Office",location:"Public counter",category:"Communication",issue:"No clearly identified accessible service counter.",severity:"Medium",status:"Overdue",owner:"Centre Administration",due:"2026-08-09",verified:true},
+ {id:"JAM-AT-00418",facility:"City Care Hospital",type:"Hospital",location:"Accessible toilet",category:"Sanitation",issue:"Grab-bar maintenance required.",severity:"High",status:"Verified",owner:"Facility Manager",due:"2026-08-07",verified:true},
+ {id:"JAM-AT-00417",facility:"Jamshedpur Public School",type:"School",location:"Library",category:"Digital Access",issue:"Public computer workstation lacks an accessible configuration.",severity:"Low",status:"Reported",owner:"School Administration",due:"2026-08-22",verified:false}
+];
+const facilities=[
+ {name:"Jamshedpur Public School",type:"School",access:72,action:84,open:2},
+ {name:"City Care Hospital",type:"Hospital",access:68,action:79,open:1},
+ {name:"Jamshedpur Civic Centre",type:"Government Office",access:61,action:58,open:1},
+ {name:"Transit Hub — Demo",type:"Transport",access:75,action:88,open:0}
+];
+const categories=["Mobility","Wayfinding","Sanitation","Communication","Digital Access","Emergency Access"];
+const severities=["Low","Medium","High","Critical"];
 
-  // Sample Cases Data
-  const [cases, setCases] = useState([
-    {
-      id: "CASE-101",
-      title: "Main Entrance Wheelchair Ramp Damaged",
-      location: "St. Xavier School, Jamshedpur",
-      category: "Ramp",
-      step: 4, // 1: Identify, 2: Audit, 3: Assign, 4: Act, 5: Monitor, 6: Verify
-      stepName: "Act (Fix in Progress)",
-      owner: "School Maintenance Team",
-      deadline: "2026-09-05",
-      status: "On Track",
-      statusColor: "bg-blue-600",
-      description: "Cracks on ramp surface making wheelchair access difficult."
-    },
-    {
-      id: "CASE-102",
-      title: "Tactile Floor Signage Missing in Lobby",
-      location: "Civil Hospital, Jamshedpur",
-      category: "Signage",
-      step: 3,
-      stepName: "Assign (Owner Pending)",
-      owner: "Facility Manager",
-      deadline: "2026-08-20",
-      status: "Overdue",
-      statusColor: "bg-red-600",
-      description: "Visually impaired visitors finding navigation tough near OPD."
-    },
-    {
-      id: "CASE-103",
-      title: "Accessible Washroom Grab Bar Installed",
-      location: "Public Library Block B",
-      category: "Washroom",
-      step: 6,
-      stepName: "Verified & Closed",
-      owner: "Public Works Dept",
-      deadline: "2026-08-25",
-      status: "Verified",
-      statusColor: "bg-green-600",
-      description: "New stainless steel safety grab bars mounted successfully."
-    }
-  ]);
-
-  // Form State
-  const [newReport, setNewReport] = useState({ title: '', location: '', category: 'Ramp', details: '' });
-  const [feedback, setFeedback] = useState({ rating: 'like', comments: '' });
-  const [generalFeedback, setGeneralFeedback] = useState('');
-
-  // Handling New Case Submission
-  const handleReportSubmit = (e) => {
-    e.preventDefault();
-    if (!newReport.title || !newReport.location) return;
-
-    const newCase = {
-      id: `CASE-${100 + cases.length + 1}`,
-      title: newReport.title,
-      location: newReport.location,
-      category: newReport.category,
-      step: 1,
-      stepName: "Identify (Reported)",
-      owner: "Assigning Soon",
-      deadline: "Pending",
-      status: "Assigned",
-      statusColor: "bg-yellow-600",
-      description: newReport.details || "New citizen report logged."
-    };
-
-    setCases([newCase, ...cases]);
-    setNewReport({ title: '', location: '', category: 'Ramp', details: '' });
-    setActiveTab('dashboard');
-    alert("Accessibility issue reported successfully!");
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 md:p-8">
-      {/* Header & Accessibility Bar */}
-      <header className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center border-b border-slate-700 pb-6 mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-yellow-400">InclusiveX</h1>
-          <p className="text-slate-400 text-sm">Audit → Action → Monitor → Verify</p>
-        </div>
-
-        {/* Action Score Widget */}
-        <div className="flex items-center gap-4 bg-slate-800 border-2 border-yellow-400/40 p-3 rounded-2xl shadow-lg">
-          <div className="text-right">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block">City Action Score</span>
-            <span className="text-sm text-slate-300">Jamshedpur Pilot</span>
-          </div>
-          <div className="w-14 h-14 rounded-full bg-slate-900 border-4 border-green-500 flex items-center justify-center font-black text-xl text-green-400">
-            {actionScore}
-          </div>
-        </div>
-      </header>
-
-      {/* Primary Accessible Navigation Bar */}
-      <nav className="max-w-6xl mx-auto flex gap-3 mb-8">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 py-4 text-lg font-bold rounded-xl border-2 transition-all ${
-            activeTab === 'dashboard'
-              ? 'bg-yellow-400 text-slate-950 border-yellow-400'
-              : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
-          }`}
-        >
-          📋 Active Cases ({cases.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('report')}
-          className={`flex-1 py-4 text-lg font-bold rounded-xl border-2 transition-all ${
-            activeTab === 'report'
-              ? 'bg-yellow-400 text-slate-950 border-yellow-400'
-              : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
-          }`}
-        >
-          ➕ Report a Barrier
-        </button>
-      </nav>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="max-w-6xl mx-auto">
-        {/* TAB 1: DASHBOARD & ACTIVE CASES */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-slate-100 mb-4">Accessibility Tracking Dashboard</h2>
-            
-            {cases.map((item) => (
-              <div key={item.id} className="bg-slate-800 border-2 border-slate-700 rounded-2xl p-6 shadow-md hover:border-slate-500 transition-all">
-                {/* Header row */}
-                <div className="flex flex-wrap justify-between items-start gap-2 mb-4">
-                  <div>
-                    <span className="text-xs font-bold text-yellow-400 uppercase tracking-widest">{item.id} • {item.category}</span>
-                    <h3 className="text-xl font-bold text-white mt-1">{item.title}</h3>
-                    <p className="text-slate-400 text-sm">📍 {item.location}</p>
-                  </div>
-                  <span className={`${item.statusColor} text-white font-bold text-sm px-4 py-1.5 rounded-full uppercase tracking-wider`}>
-                    {item.status}
-                  </span>
-                </div>
-
-                {/* 6-Step Visual Workflow Stepper */}
-                <div className="my-6 bg-slate-900 p-4 rounded-xl border border-slate-700">
-                  <div className="text-xs font-bold text-slate-400 uppercase mb-2">Live Status: {item.stepName}</div>
-                  <div className="grid grid-cols-6 gap-1.5 md:gap-2">
-                    {["Identify", "Audit", "Assign", "Act", "Monitor", "Verify"].map((stepLabel, idx) => {
-                      const stepNum = idx + 1;
-                      const isComplete = stepNum <= item.step;
-                      return (
-                        <div key={stepLabel} className="text-center">
-                          <div
-                            className={`h-3 rounded-full mb-1 ${
-                              isComplete ? 'bg-yellow-400' : 'bg-slate-700'
-                            }`}
-                          />
-                          <span className={`text-[10px] md:text-xs font-semibold block truncate ${isComplete ? 'text-yellow-400' : 'text-slate-500'}`}>
-                            {stepLabel}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Case Info Footer */}
-                <div className="flex flex-wrap justify-between items-center text-sm border-t border-slate-700/60 pt-4 text-slate-300 gap-2">
-                  <div>👤 Responsible Owner: <strong className="text-white">{item.owner}</strong></div>
-                  <div>🗓️ Deadline: <strong className="text-white">{item.deadline}</strong></div>
-                  
-                  {item.status === 'Verified' && (
-                    <button
-                      onClick={() => { setSelectedCaseForFeedback(item); setShowFeedbackModal(true); }}
-                      className="bg-green-600 hover:bg-green-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-all"
-                    >
-                      👍 Give Fix Feedback
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* TAB 2: SIMPLE ACCESSIBLE REPORTING FORM */}
-        {activeTab === 'report' && (
-          <div className="bg-slate-800 border-2 border-slate-700 rounded-2xl p-6 md:p-8 max-w-2xl mx-auto shadow-xl">
-            <h2 className="text-2xl font-bold text-yellow-400 mb-2">Report an Accessibility Barrier</h2>
-            <p className="text-slate-400 text-sm mb-6">Help make public buildings accessible for everyone.</p>
-
-            <form onSubmit={handleReportSubmit} className="space-y-6">
-              {/* Category Selector Buttons */}
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">1. Barrier Category</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {['Ramp', 'Washroom', 'Signage', 'Elevator'].map((cat) => (
-                    <button
-                      type="button"
-                      key={cat}
-                      onClick={() => setNewReport({ ...newReport, category: cat })}
-                      className={`p-3 rounded-xl font-bold text-center border-2 transition-all ${
-                        newReport.category === cat
-                          ? 'bg-yellow-400 text-slate-950 border-yellow-400'
-                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-700'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Title & Location */}
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-1">2. What is the issue?</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ramp is too steep or blocked"
-                  value={newReport.title}
-                  onChange={(e) => setNewReport({ ...newReport, title: e.target.value })}
-                  className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl p-4 text-white placeholder-slate-500 focus:border-yellow-400 focus:outline-none text-lg"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-1">3. Building / Location</label>
-                <input
-                  type="text"
-                  placeholder="e.g. MGM Hospital Gate 2, Jamshedpur"
-                  value={newReport.location}
-                  onChange={(e) => setNewReport({ ...newReport, location: e.target.value })}
-                  className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl p-4 text-white placeholder-slate-500 focus:border-yellow-400 focus:outline-none text-lg"
-                  required
-                />
-              </div>
-
-              {/* Multimedia Accessibility Features */}
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => alert("Photo camera integration active in live app.")}
-                  className="p-4 bg-slate-900 border-2 border-dashed border-slate-600 rounded-xl text-slate-300 font-bold hover:border-yellow-400 flex flex-col items-center justify-center gap-1"
-                >
-                  📷 Add Photo Evidence
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert("Voice note recorder active.")}
-                  className="p-4 bg-slate-900 border-2 border-dashed border-slate-600 rounded-xl text-slate-300 font-bold hover:border-yellow-400 flex flex-col items-center justify-center gap-1"
-                >
-                  🎙️ Record Voice Note
-                </button>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xl py-5 rounded-xl transition-all shadow-lg"
-              >
-                Submit Accessibility Case
-              </button>
-            </form>
-          </div>
-        )}
-      </main>
-
-      {/* FLOATING GENERAL FEEDBACK BUTTON */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => { setSelectedCaseForFeedback(null); setShowFeedbackModal(true); }}
-          className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold px-5 py-3 rounded-full shadow-2xl border-2 border-slate-900 flex items-center gap-2 text-base"
-        >
-          💡 Feedback & Ideas
-        </button>
-      </div>
-
-      {/* FEEDBACK MODAL COMPONENT */}
-      {showFeedbackModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 border-2 border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
-            <button
-              onClick={() => setShowFeedbackModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold"
-            >
-              ✕
-            </button>
-
-            <h3 className="text-xl font-bold text-white mb-2">
-              {selectedCaseForFeedback ? `Feedback for ${selectedCaseForFeedback.id}` : 'Platform Feedback'}
-            </h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Is the fix completed properly, or do you have suggestions to improve InclusiveX?
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">Did this fix resolve the barrier?</label>
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setFeedback({ ...feedback, rating: 'like' })}
-                    className={`flex-1 py-3 rounded-xl font-bold border-2 ${
-                      feedback.rating === 'like' ? 'bg-green-600 text-white border-green-500' : 'bg-slate-900 text-slate-300 border-slate-700'
-                    }`}
-                  >
-                    👍 Yes, Fixed!
-                  </button>
-                  <button
-                    onClick={() => setFeedback({ ...feedback, rating: 'dislike' })}
-                    className={`flex-1 py-3 rounded-xl font-bold border-2 ${
-                      feedback.rating === 'dislike' ? 'bg-red-600 text-white border-red-500' : 'bg-slate-900 text-slate-300 border-slate-700'
-                    }`}
-                  >
-                    👎 Still Blocked
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-1">Your Comments</label>
-                <textarea
-                  rows="3"
-                  placeholder="Share details about the fix or UI suggestion..."
-                  value={generalFeedback}
-                  onChange={(e) => setGeneralFeedback(e.target.value)}
-                  className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-400 text-sm"
-                />
-              </div>
-
-              <button
-                onClick={() => {
-                  alert("Thank you! Your feedback helps keep accessibility accountable.");
-                  setShowFeedbackModal(false);
-                  setGeneralFeedback('');
-                }}
-                className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold py-3 rounded-xl transition-all"
-              >
-                Submit Feedback
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+function App(){
+ const [page,setPage]=useState("dashboard"),[cases,setCases]=useState(initialCases);
+ const [selected,setSelected]=useState(null),[toast,setToast]=useState(""),[search,setSearch]=useState("");
+ const metrics=useMemo(()=>({total:cases.length,resolved:cases.filter(c=>c.status==="Verified").length,overdue:cases.filter(c=>c.status==="Overdue").length}),[cases]);
+ const notify=m=>{setToast(m);setTimeout(()=>setToast(""),2200)};
+ const addCase=p=>{const c={...p,id:`JAM-AT-${String(422+cases.length).padStart(5,"0")}`,status:"Reported",verified:false};setCases([c,...cases]);setPage("cases");notify(`Case ${c.id} created.`)};
+ const updateCase=(id,patch)=>{setCases(x=>x.map(c=>c.id===id?{...c,...patch}:c));setSelected(x=>x?{...x,...patch}:x);notify("Case updated.")};
+ return <div className="app"><Sidebar page={page} setPage={setPage}/><main className="main"><Topbar search={search} setSearch={setSearch} onReport={()=>setPage("report")}/>
+ {page==="dashboard"&&<Dashboard cases={cases} metrics={metrics} setSelected={setSelected} setPage={setPage}/>}
+ {page==="cases"&&<Cases cases={cases} search={search} setSelected={setSelected}/>}
+ {page==="report"&&<ReportForm onSubmit={addCase}/>}
+ {page==="facilities"&&<Facilities facilities={facilities}/>}
+ {page==="analytics"&&<Analytics cases={cases} metrics={metrics}/>}
+ {page==="auditor"&&<Auditor cases={cases} setSelected={setSelected}/>}
+ {page==="settings"&&<SettingsPage/>}</main>
+ {selected&&<CaseDrawer caseData={selected} close={()=>setSelected(null)} updateCase={updateCase}/>}
+ {toast&&<div className="toast"><CheckCircle2 size={17}/>{toast}</div>}</div>
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <InclusiveXApp />
-  </React.StrictMode>,
-)
+function Sidebar({page,setPage}){
+ const items=[["dashboard","Dashboard",LayoutDashboard],["cases","Cases",ClipboardCheck],["report","Report Issue",Plus],["facilities","Facilities",Building2],["analytics","Analytics",BarChart3],["auditor","Audit Queue",ShieldCheck]];
+ return <aside className="sidebar"><div className="brand"><div className="brandmark"><Accessibility size={24}/></div><div><b>Audit to Action</b><span>JAMSHEDPUR PILOT</span></div></div><div className="nav-label">WORKSPACE</div><nav>{items.map(([k,l,I])=><button key={k} className={page===k?"nav active":"nav"} onClick={()=>setPage(k)}><I size={18}/><span>{l}</span></button>)}</nav><div className="sidebar-bottom"><button className={page==="settings"?"nav active":"nav"} onClick={()=>setPage("settings")}><Settings size={18}/><span>Settings</span></button><div className="pilot-card"><i></i><b>Prototype mode</b><span>Demo data · not official certification</span></div></div></aside>
+}
+function Topbar({search,setSearch,onReport}){return <header className="topbar"><div className="crumb"><span>Jamshedpur</span><ChevronRight size={15}/><b>Accessibility Accountability</b></div><div className="top-actions"><div className="search"><Search size={17}/><input placeholder="Search cases..." value={search} onChange={e=>setSearch(e.target.value)}/></div><button className="icon-btn"><Bell size={18}/></button><button className="user"><UserRound size={18}/>Project Admin</button><button className="primary small" onClick={onReport}><Plus size={16}/>Report issue</button></div></header>}
+function Head({eyebrow,title,desc,action}){return <div className="page-head"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{desc}</p></div>{action}</div>}
+function Stat({icon:I,label,value,sub,tone=""}){return <div className="stat"><div className={`stat-icon ${tone}`}><I size={19}/></div><div><span>{label}</span><strong>{value}</strong><small>{sub}</small></div></div>}
+function Dashboard({cases,metrics,setSelected,setPage}){
+ const bars=[["Identified",120,"blue"],["Assigned",96,"cyan"],["In progress",42,"orange"],["Resolved",78,"green"],["Overdue",13,"red"]];
+ return <div className="content"><Head eyebrow="OVERVIEW / 01" title="Accessibility command centre" desc="Track barriers from first report to verified resolution." action={<button className="secondary" onClick={()=>setPage("report")}><Plus size={16}/>New case</button>}/>
+ <div className="stat-grid"><Stat icon={Building2} label="Facilities monitored" value="10" sub="+4 this pilot"/><Stat icon={AlertTriangle} label="Open barriers" value={metrics.total-metrics.resolved} sub={`${metrics.overdue} overdue`} tone="warn"/><Stat icon={CheckCircle2} label="Verified resolved" value={metrics.resolved+78} sub="Illustrative pilot total" tone="good"/><Stat icon={Activity} label="Avg. action score" value="81" sub="+9 vs baseline" tone="blue"/></div>
+ <div className="two-col"><section className="panel"><div className="panel-head"><div><h3>Action pipeline</h3><span>Illustrative pilot dashboard</span></div><span className="pill">Demo data</span></div><div className="bar-chart">{bars.map(([l,v,c])=><div className="bar-col" key={l}><b>{v}</b><div className={`bar ${c}`} style={{height:`${Math.max(10,v/120*185)}px`}}></div><span>{l}</span></div>)}</div></section>
+ <section className="panel"><div className="panel-head"><div><h3>Score snapshot</h3><span>Condition + response</span></div></div><ScoreRow label="Accessibility Score" value={68} tone="blue"/><ScoreRow label="Action Score" value={81} tone="green"/><div className="score-note"><ShieldCheck size={18}/><span>Two scores separate <b>how accessible</b> a place is from <b>how well it responds</b>.</span></div></section></div>
+ <section className="panel"><div className="panel-head"><div><h3>Recent cases</h3><span>Latest activity</span></div><button className="link-btn" onClick={()=>setPage("cases")}>View all <ArrowRight size={15}/></button></div><CaseTable cases={cases.slice(0,4)} setSelected={setSelected}/></section></div>
+}
+function ScoreRow({label,value,tone}){return <div className="score-row"><div><span>{label}</span><b>{value}<em>/100</em></b></div><div className="progress"><i className={tone} style={{width:`${value}%`}}/></div></div>}
+function Cases({cases,search,setSelected}){const f=cases.filter(c=>[c.id,c.facility,c.issue,c.category,c.status].join(" ").toLowerCase().includes(search.toLowerCase()));return <div className="content"><Head eyebrow="CASE MANAGEMENT / 02" title="Accessibility cases" desc="Every verified finding becomes a trackable action."/><section className="panel"><div className="filters"><div className="filter active">All <b>{f.length}</b></div><div className="filter">Reported</div><div className="filter">Assigned</div><div className="filter">In progress</div><div className="filter">Overdue</div><div className="filter">Verified</div></div><CaseTable cases={f} setSelected={setSelected}/></section></div>}
+function CaseTable({cases,setSelected}){return <div className="table-wrap"><table><thead><tr><th>CASE</th><th>FACILITY</th><th>FINDING</th><th>PRIORITY</th><th>OWNER</th><th>DUE</th><th>STATUS</th></tr></thead><tbody>{cases.map(c=><tr key={c.id} onClick={()=>setSelected(c)}><td><b className="case-id">{c.id}</b><small>{c.category}</small></td><td><b>{c.facility}</b><small>{c.type}</small></td><td className="finding">{c.issue}<small>{c.location}</small></td><td><Priority value={c.severity}/></td><td>{c.owner}</td><td>{fmt(c.due)}</td><td><Status value={c.status}/></td></tr>)}</tbody></table></div>}
+function Priority({value}){return <span className={`priority ${value.toLowerCase()}`}>{value}</span>}
+function Status({value}){return <span className={`status ${value.toLowerCase().replaceAll(" ","-")}`}>{value}</span>}
+function fmt(s){return new Date(s+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}
+
+function ReportForm({onSubmit}){
+ const [f,setF]=useState({facility:"Jamshedpur Public School",type:"School",location:"",category:"Mobility",issue:"",severity:"Medium",owner:"School Administration",due:"2026-08-22"});
+ const set=(k,v)=>setF({...f,[k]:v}); const submit=e=>{e.preventDefault();if(!f.location||!f.issue)return;onSubmit(f)};
+ return <div className="content"><Head eyebrow="REPORT / 03" title="Report an accessibility barrier" desc="Create a structured case. This prototype does not issue statutory certification."/><form className="form-grid" onSubmit={submit}><section className="panel form-main"><div className="form-title"><div className="form-icon"><MapPin size={20}/></div><div><h3>Issue details</h3><span>Capture enough context for verification.</span></div></div><div className="field-row"><Field label="Facility"><select value={f.facility} onChange={e=>set("facility",e.target.value)}><option>Jamshedpur Public School</option><option>City Care Hospital</option><option>Jamshedpur Civic Centre</option><option>Transit Hub — Demo</option></select></Field><Field label="Facility type"><select value={f.type} onChange={e=>set("type",e.target.value)}><option>School</option><option>Hospital</option><option>Government Office</option><option>Transport</option></select></Field></div><Field label="Exact location" required><input placeholder="e.g. Main entrance, OPD Block A" value={f.location} onChange={e=>set("location",e.target.value)}/></Field><Field label="Barrier category"><select value={f.category} onChange={e=>set("category",e.target.value)}>{categories.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="What is the problem?" required><textarea rows="5" placeholder="Describe what you observed..." value={f.issue} onChange={e=>set("issue",e.target.value)}/></Field><div className="upload"><FileText size={20}/><div><b>Evidence attachment</b><span>Prototype UI placeholder</span></div><button type="button" className="secondary">Choose file</button></div></section><aside className="panel form-side"><h3>Initial triage</h3><Field label="Severity"><select value={f.severity} onChange={e=>set("severity",e.target.value)}>{severities.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Responsible owner"><input value={f.owner} onChange={e=>set("owner",e.target.value)}/></Field><Field label="Proposed target date"><input type="date" value={f.due} onChange={e=>set("due",e.target.value)}/></Field><div className="notice"><ShieldCheck size={18}/><p><b>Boundary:</b> final technical classification should be confirmed through the appropriate audit/verification process.</p></div><button className="primary full" type="submit"><ClipboardCheck size={17}/>Create case</button></aside></form></div>}
+function Field({label,required,children}){return <label className="field"><span>{label}{required&&<i> *</i>}</span>{children}</label>}
+
+function Facilities({facilities}){return <div className="content"><Head eyebrow="FACILITIES / 04" title="Facility portfolio" desc="Compare accessibility condition with action performance."/><div className="facility-grid">{facilities.map(f=><div className="facility-card" key={f.name}><div className="facility-top"><div className="facility-logo">{f.type==="Hospital"?<Hospital size={21}/>:f.type==="School"?<School size={21}/>:<Building2 size={21}/>}</div><span className="pill">{f.type}</span></div><h3>{f.name}</h3><span className="muted">{f.open} open actions</span><ScoreRow label="Accessibility" value={f.access} tone="blue"/><ScoreRow label="Action" value={f.action} tone="green"/></div>)}</div></div>}
+function Analytics({cases,metrics}){const cats=categories.map(cat=>({cat,n:cases.filter(c=>c.category===cat).length}));const max=Math.max(1,...cats.map(x=>x.n));return <div className="content"><Head eyebrow="ANALYTICS / 05" title="Impact analytics" desc="Prototype analytics for the YUVA pilot narrative."/><div className="analytics-grid"><section className="panel"><div className="panel-head"><div><h3>Cases by category</h3><span>Current demo dataset</span></div></div><div className="hbars">{cats.map(x=><div className="hbar" key={x.cat}><span>{x.cat}</span><div><i style={{width:`${x.n/max*100}%`}}/></div><b>{x.n}</b></div>)}</div></section><section className="panel"><div className="panel-head"><div><h3>Outcome</h3><span>Current cases</span></div></div><div className="donut" style={{"--p":`${metrics.resolved/cases.length*100}%`}}><div><b>{Math.round(metrics.resolved/cases.length*100)}%</b><span>resolved</span></div></div><div className="legend"><span><i className="dot green"/>Verified</span><span><i className="dot orange"/>Open</span><span><i className="dot red"/>Overdue</span></div></section></div><div className="insight-row"><div><Siren size={19}/><b>Accountability insight</b><span>Overdue cases should trigger escalation — not disappear from the dashboard.</span></div><div><Activity size={19}/><b>Impact insight</b><span>Re-score after verified closure to show measurable improvement.</span></div></div></div>}
+function Auditor({cases,setSelected}){const q=cases.filter(c=>c.status==="Reported"||c.status==="Assigned");return <div className="content"><Head eyebrow="AUDIT QUEUE / 06" title="Verification & audit queue" desc="Review reports, record findings, and move verified cases into action."/><div className="audit-banner"><ShieldCheck size={22}/><div><b>Role boundary</b><span>The platform manages workflow; it does not itself grant statutory accessibility certification.</span></div></div><section className="panel"><div className="panel-head"><div><h3>Awaiting verification / action assignment</h3><span>{q.length} cases</span></div></div><CaseTable cases={q} setSelected={setSelected}/></section></div>}
+function SettingsPage(){return <div className="content"><Head eyebrow="SETTINGS" title="Prototype settings" desc="Demo-only configuration."/><div className="two-col"><section className="panel"><h3>Scoring model</h3><p className="muted">Accessibility Score is a demonstration index. In a real deployment, weights and thresholds must be validated against applicable standards and professional audit methodology.</p><div className="mini-list"><span>Physical access <b>30%</b></span><span>Wayfinding <b>15%</b></span><span>Accessible sanitation <b>20%</b></span><span>Communication <b>15%</b></span><span>Emergency access <b>20%</b></span></div></section><section className="panel"><h3>Prototype boundaries</h3><p className="muted">No legal penalty engine, official certification, or real government integration is included. The prototype demonstrates the accountability workflow.</p></section></div></div>}
+function CaseDrawer({caseData,close,updateCase}){return <div className="drawer-overlay" onClick={close}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">CASE DETAIL</span><h2>{caseData.id}</h2></div><button className="icon-btn" onClick={close}><X size={19}/></button></div><div className="drawer-status"><Status value={caseData.status}/><Priority value={caseData.severity}/><span>{caseData.category}</span></div><div className="drawer-block"><label>FINDING</label><p className="big">{caseData.issue}</p><span className="muted"><MapPin size={14}/> {caseData.location}</span></div><div className="drawer-block"><label>ACTION OWNER</label><p>{caseData.owner}</p><div className="owner-line"><Clock3 size={15}/> Target: {fmt(caseData.due)}</div></div><div className="drawer-block"><label>ACCOUNTABILITY TIMELINE</label><Timeline label="Report received" done/><Timeline label="Finding verified" done={caseData.verified}/><Timeline label="Action assigned" done={["Assigned","In Progress","Overdue","Verified"].includes(caseData.status)}/><Timeline label="Corrective action" done={caseData.status==="Verified"}/><Timeline label="Closure verified" done={caseData.status==="Verified"} last/></div><div className="drawer-actions"><button className="secondary" onClick={()=>updateCase(caseData.id,{status:"In Progress"})}>Mark in progress</button><button className="primary" onClick={()=>updateCase(caseData.id,{status:"Verified",verified:true})}>Verify closure</button></div></aside></div>}
+function Timeline({label,done,last}){return <div className="timeline"><div className={`t-dot ${done?"done":""}`}>{done?<CheckCircle2 size={13}/>:<Clock3 size={12}/>}</div><span>{label}</span>{!last&&<i/>}</div>}
+
+createRoot(document.getElementById("root")).render(<App/>);
